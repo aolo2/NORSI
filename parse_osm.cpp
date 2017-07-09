@@ -17,6 +17,9 @@ int main(int argc, char **argv) {
     std::vector<Token> tokens;
 
     std::ifstream f(path);
+    for (unsigned int i = 0; i < 3; i++) {
+        std::getline(f, line);                  // Первые три строки не содержат нужной информации
+    }
 
     while (std::getline(f, line)) {
         tokens = get_tokens(line);

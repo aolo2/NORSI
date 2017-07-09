@@ -118,6 +118,9 @@ std::pair<Token, unsigned int> get_keyword(const std::string &src, unsigned int 
     char c = src[index];
 
     switch (src[index]) {
+        case 'o':
+            keyword_type = KEYWORD_TYPE::OSM;
+            break;
         case 'v':
             keyword_type = (src[index + 1] == '=') ? KEYWORD_TYPE::V : KEYWORD_TYPE::VERSION;
             break;
@@ -164,6 +167,10 @@ std::pair<Token, unsigned int> get_keyword(const std::string &src, unsigned int 
     }
 
     switch (keyword_type) {
+        case OSM:
+            keyword_text = "osm";
+            keyword_len = 3;
+            break;
         case VERSION:
             keyword_text = "version";
             keyword_len = 7;
