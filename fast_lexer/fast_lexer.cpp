@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <unordered_set>
 #include "fast_lexer.h"
 
 std::pair<std::vector<Node>, std::vector<Way>> get_nodes_and_ways(std::ifstream &in) {
@@ -10,6 +11,7 @@ std::pair<std::vector<Node>, std::vector<Way>> get_nodes_and_ways(std::ifstream 
     line.reserve(256);
 
     std::pair<std::vector<Node>, std::vector<Way>> ret;
+    std::unordered_set<unsigned long> nodes;
 
     while (std::getline(in, line)) {
         if (line.find("<node") != std::string::npos) {
@@ -19,6 +21,7 @@ std::pair<std::vector<Node>, std::vector<Way>> get_nodes_and_ways(std::ifstream 
             node.lon = std::stof(line.substr(line.find("lon=") + 5, line.rfind("\"") - 1));
 
             ret.first.push_back(node);
+            nodes.insert(node.id);
         } else if (line.find("<way") != std::string::npos) {
             Way way;
             way.id = std::stoul(line.substr(line.find("id=") + 4, line.find("\" ") - 1));
@@ -26,11 +29,16 @@ std::pair<std::vector<Node>, std::vector<Way>> get_nodes_and_ways(std::ifstream 
             while (line.find("</way") == std::string::npos) {
                 std::getline(in, line);
                 if (line.find("<nd") != std::string::npos) {
-                    way.nodes.push_back(std::stoul(line.substr(line.find("ref=") + 5, line.rfind("\"") - 1)));
+                    unsigned long id_to_add = std::stoul(line.substr(line.find("ref=") + 5, line.rfind("\"") - 1));
+                    if (nodes.find(id_to_add) != nodes.end()) {
+                        way.nodes.push_back(id_to_add);
+                    }
                 }
             }
 
-            ret.second.push_back(way);
+            if (way.nodes.size() > 1) {
+                ret.second.push_back(way);
+            }
         }
     }
 

@@ -82,25 +82,31 @@ void output_sdot(const std::pair<std::vector<Node>, std::vector<Way>>
     }
 }
 
-void key_error() {
+void usage_error() {
     std::cerr << "Usage: ./osmparse PATH-TO-INPUT.osm -d(-g)" << std::endl;
 }
 
 int main(int argc, char **argv) {
+
+    if (argc != 3) {
+        usage_error();
+        return -1;
+    }
+
     std::string path(argv[1]);
     std::ifstream r(path);
     std::string key(argv[2]);
 
-    if (key != "-g" && key != "-d") { key_error(); }
+    if (key != "-g" && key != "-d") { usage_error(); }
 
     std::pair<std::vector<Node>, std::vector<Way>>
             nodes_and_ways = get_nodes_and_ways(r);
 
     if (key == "-g") {
-        std::ofstream out("out.gexf");
+        std::ofstream out("out/roads.gexf");
         output_gephi(nodes_and_ways, out);
     } else {
-        std::ofstream out("out.sdot");
+        std::ofstream out("out/roads.sdot");
         output_sdot(nodes_and_ways, out);
     }
 
