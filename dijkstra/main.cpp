@@ -8,7 +8,7 @@
 #include <queue>
 #include <limits>
 #include <unordered_map>
-#include <bits/unordered_set.h>
+#include <unordered_set>
 
 typedef std::pair<unsigned long, float> vertex;
 
@@ -18,18 +18,14 @@ struct vertex_comp {
 
 void dijkstra(std::unordered_map<unsigned long, std::vector<vertex>> &graph, unsigned long source) {
     std::priority_queue<vertex, std::vector<vertex>, vertex_comp> Q;
-    std::unordered_set<unsigned long> q_set;
     std::unordered_map<unsigned long, float> dist;
     for (const auto &v : graph) { dist[v.first] = std::numeric_limits<float>::infinity(); }
 
     Q.push({source, 0});
-    q_set.insert(source);
-
     while (!Q.empty()) {
 
         auto u = Q.top();
         Q.pop();
-        q_set.erase(u.first);
 
         if (u.second < dist[u.first]) {
             dist[u.first] = u.second;
@@ -38,11 +34,7 @@ void dijkstra(std::unordered_map<unsigned long, std::vector<vertex>> &graph, uns
         for (const auto &v : graph[u.first]) {
             float alt = dist[u.first] + v.second;
             if (alt < dist[v.first]) {
-                if (q_set.find(v.first) == q_set.end()) {
-                    Q.push({v.first, alt});
-                    q_set.insert(v.first);
-                }
-
+                Q.push({v.first, alt});
                 dist[v.first] = alt;
             }
         }
@@ -68,7 +60,7 @@ int main(int argc, char **argv) {
         graph[edge_to].push_back({id, weight});
     }
 
-    dijkstra(graph, 450606976);
+    dijkstra(graph, 1);
 
     return 0;
 }
