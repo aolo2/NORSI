@@ -6,6 +6,8 @@
 #define NORSI_MIN_PRIORITY_QUEUE_HPP
 
 #include <unordered_set>
+#include <algorithm>
+#include "../shared.hpp"
 
 namespace norsi {
 
@@ -13,6 +15,8 @@ namespace norsi {
     class min_pqueue {
     public:
         min_pqueue(std::size_t n);
+
+        min_pqueue(const std::vector<T> &data);
 
         void push(const T &item);
 
@@ -23,6 +27,8 @@ namespace norsi {
         inline bool contains(const T &item) {
             return contents_set.find(item) != contents_set.end();
         }
+
+        inline std::size_t size() { return heap.size(); }
 
         inline bool empty() { return heap.empty(); }
 
@@ -36,6 +42,12 @@ namespace norsi {
     template<typename T>
     min_pqueue<T>::min_pqueue(std::size_t n) {
         heap.reserve(n);
+    }
+
+    template<typename T>
+    min_pqueue<T>::min_pqueue(const std::vector<T> &data) : heap(data) {
+        std::make_heap(heap.begin(), heap.end(), std::greater<T>());
+        contents_set.insert(data.begin(), data.end());
     }
 
     template<typename T>
