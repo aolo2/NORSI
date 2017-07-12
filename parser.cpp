@@ -87,15 +87,18 @@ std::pair<std::map<unsigned long, Node>, std::map<unsigned long, std::vector<std
     }
 
 
-    // version for parse and fufure work
-    std::ofstream out;
+    // version for parse and fufure work, version for print
+    std::ofstream out, out_print;
 
     out.open("/home/valya/ClionProjects/NORSI_geo_2017/graph/" + s + "_graph");
+    out_print.open("/home/valya/ClionProjects/NORSI_geo_2017/graph/" + s + "_graph_for_print.dot");
 
     out << s << "\n" << "Nodes" << "\n";
+    out_print << "graph {" << std::endl;
 
     for (auto n : p.first) {
         out << n.first << " " << n.second.lat << " " << n.second.lon << "\n";
+        out_print << "\t" << n.first << " [longitude=" << n.second.lon << ", latitude=" << n.second.lat << "]" << std::endl;
     }
 
     out << "Ways" << "\n";
@@ -103,28 +106,12 @@ std::pair<std::map<unsigned long, Node>, std::map<unsigned long, std::vector<std
     for (auto w : p.second) {
         for (auto v : w.second){
             out << w.first << " " << v.first << " " << v.second << "\n";
-        }
-    }
-
-    out.close();
-
-    // version for print
-    std::ofstream out_print;
-
-    out_print.open("/home/valya/ClionProjects/NORSI_geo_2017/graph/" + s + "_graph_for_print");
-
-    out_print << "graph {" << std::endl;
-    for (auto n : p.first) {
-        out_print << "\t" << n.first << " [longitude=" << n.second.lon << ", latitude=" << n.second.lat << "]" << std::endl;
-    }
-
-
-    for (auto w : p.second) {
-        for (auto v : w.second)
             out_print << "\t" << w.first << " -- " << v.first << std::endl;
+        }
     }
     out_print << "}" << std::endl;
 
+    out.close();
     out_print.close();
 
     return p;
