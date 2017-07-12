@@ -5,21 +5,28 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 #include <queue>
 #include <limits>
 #include <unordered_map>
 #include <unordered_set>
 
 typedef std::pair<unsigned long, float> vertex;
+typedef std::pair<float, std::vector<unsigned int>> path;
 
 struct vertex_comp {
     bool operator()(const vertex &a, const vertex &b) { return a.second > b.second; }
 };
 
-void dijkstra(std::unordered_map<unsigned long, std::vector<vertex>> &graph, unsigned long source) {
+path dijkstra(std::unordered_map<unsigned long, std::vector<vertex>> &graph,
+              unsigned long source, unsigned long target) {
     std::priority_queue<vertex, std::vector<vertex>, vertex_comp> Q;
     std::unordered_map<unsigned long, float> dist;
-    for (const auto &v : graph) { dist[v.first] = std::numeric_limits<float>::infinity(); }
+    std::unordered_map<unsigned long, unsigned long> prev;
+
+    for (const auto &v : graph) {
+        dist[v.first] = std::numeric_limits<float>::infinity();
+    }
 
     Q.push({source, 0});
     while (!Q.empty()) {
@@ -36,15 +43,45 @@ void dijkstra(std::unordered_map<unsigned long, std::vector<vertex>> &graph, uns
             if (alt < dist[v.first]) {
                 Q.push({v.first, alt});
                 dist[v.first] = alt;
+                prev[v.first] = u.first;
             }
+        }
+
+        if (u.first == target) {
+            path res;
+
+            res.first = u.second;
+            res.second.push_back(target);
+
+            for (auto v = prev[target]; v != source; v = prev[v]) {
+                res.second.push_back(v);
+            }
+
+            res.second.push_back(source);
+            return res;
         }
     }
 
-    unsigned long target;
+    std::cout << "unreachable" << std::endl;
+    return {-1, {}};
+}
 
-    std::cout << "target: ";
-    std::cin >> target;
-    std::cout << dist[target] << std::endl;
+void output_to_osc(const path &p) {
+    std::ofstream w("routes/route.osc");
+    w << "<osmChange version=\"0.6\" generator=\"Norsi\">\n"
+            "\t<create>\n\t<way id=\"-1\">\n";
+
+    for (const auto &node : p.second) {
+        w << "\t\t<nd ref=\"" << node << "\"/>" << std::endl;
+    }
+
+    w << "\t</way>\n\t<relation id=\"-2\">\n"
+            "\t\t<member type=\"way\" ref=\"-1\" role=\"route\"/>\n"
+            "\t\t<tag k=\"type\" v=\"route\"/>\n"
+            "\t\t<tag k=\"route\" v=\"road\"/>\n"
+            "\t\t<tag k=\"colour\" v=\"red\"/>\n"
+            "\t\t<tag k=\"distance\" v=\"" << p.first << "\"/>\n"
+              "\t</relation>\n\t</create>\n</osmChange>";
 }
 
 int main(int argc, char **argv) {
@@ -66,10 +103,10 @@ int main(int argc, char **argv) {
         graph[edge_to].push_back({id, weight});
     }
 
-    unsigned long source;
-    std::cin >> source;
+    unsigned long source, target;
+    std::cin >> source >> target;
 
-    dijkstra(graph, source);
+    output_to_osc(dijkstra(graph, source, target));
 
     return 0;
 }
