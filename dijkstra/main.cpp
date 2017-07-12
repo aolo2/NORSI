@@ -39,6 +39,12 @@ void dijkstra(std::unordered_map<unsigned long, std::vector<vertex>> &graph, uns
             }
         }
     }
+
+    unsigned long target;
+
+    std::cout << "target: ";
+    std::cin >> target;
+    std::cout << dist[target] << std::endl;
 }
 
 int main(int argc, char **argv) {
@@ -60,7 +66,10 @@ int main(int argc, char **argv) {
         graph[edge_to].push_back({id, weight});
     }
 
-    dijkstra(graph, 1);
+    unsigned long source;
+    std::cin >> source;
+
+    dijkstra(graph, source);
 
     return 0;
 }
