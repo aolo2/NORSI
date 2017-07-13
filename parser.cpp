@@ -40,12 +40,21 @@ float short_dist(Node from, Node to) {
     return std::sqrt(dlat * dlat + dlon * dlon);
 }
 
-std::pair<std::map<unsigned long, Node>, std::map<unsigned long, std::vector<std::pair<unsigned long, float>>>> parser_osm(std::ifstream &in, std::string s) {
+std::pair<std::map<unsigned long, Node>, std::unordered_map<unsigned long, std::vector<vertex>>> parser_osm(std::ifstream &in, std::string s) {
 
-    std::pair<std::map<unsigned long, Node>, std::map<unsigned long, std::vector<std::pair<unsigned long, float>>>> p;
+    std::pair<std::map<unsigned long, Node>, std::unordered_map<unsigned long, std::vector<vertex>>> p;
     std::unordered_set<unsigned long> set_id;
 
     std::string line;
+    bool flag = true;
+    // version for parse and fufure work, version for print
+    std::ofstream out, out_print;
+
+    out.open("/home/valya/ClionProjects/NORSI_geo_2017/graph/" + s + "_graph");
+    out_print.open("/home/valya/ClionProjects/NORSI_geo_2017/graph/" + s + "_graph_for_print.dot");
+
+    out << s << "\n" << "Nodes" << "\n";
+    out_print << "graph {" << std::endl;
 
     while (std::getline(in, line)) {
         if (line.find("<node") != std::string::npos) {
@@ -56,9 +65,16 @@ std::pair<std::map<unsigned long, Node>, std::map<unsigned long, std::vector<std
 
             p.first.insert(std::pair<unsigned  long, Node>(node.id,node));
             set_id.insert(node.id);
-            std::vector<std::pair<unsigned long, float>> v;
-            p.second.insert(std::pair<unsigned long, std::vector<std::pair<unsigned long, float>>>(node.id, v));
+            std::vector<vertex> v;
+            p.second.insert(std::pair<unsigned long, std::vector<vertex>>(node.id, v));
+            out << node.id << " " << node.lat << " " << node.lon << "\n";
+            out_print << "\t" << node.id << " [latitude =" << node.lat << ", longitude=" << node.lon << "]" << std::endl;
         } else if (line.find("<way") != std::string::npos) {
+
+            if (flag) {
+                out << "Ways" << "\n";
+                flag = false;
+            }
 
             bool k = true;
             unsigned long first_node;
@@ -77,7 +93,10 @@ std::pair<std::map<unsigned long, Node>, std::map<unsigned long, std::vector<std
                         second_node = std::stoul(line.substr(line.find("ref=") + 5, line.rfind("\"") - 1));
                         if (set_id.find(second_node) != set_id.end()){
                             float len = long_dist(p.first[first_node],p.first[second_node]);
-                            p.second[first_node].push_back(std::pair<unsigned long, float>(second_node,len));
+                            p.second[first_node].push_back(std::pair<unsigned long, float>(second_node, len));
+                            p.second[second_node].push_back(std::pair<unsigned long, float>(first_node, len));
+                            out << first_node << " " << second_node << " " << len << "\n";
+                            out_print << "\t" << first_node << " -- " << second_node << std::endl;
                             first_node = second_node;
                         }
                     }
@@ -86,29 +105,6 @@ std::pair<std::map<unsigned long, Node>, std::map<unsigned long, std::vector<std
         }
     }
 
-
-    // version for parse and fufure work, version for print
-    std::ofstream out, out_print;
-
-    out.open("/home/valya/ClionProjects/NORSI_geo_2017/graph/" + s + "_graph");
-    out_print.open("/home/valya/ClionProjects/NORSI_geo_2017/graph/" + s + "_graph_for_print.dot");
-
-    out << s << "\n" << "Nodes" << "\n";
-    out_print << "graph {" << std::endl;
-
-    for (auto n : p.first) {
-        out << n.first << " " << n.second.lat << " " << n.second.lon << "\n";
-        out_print << "\t" << n.first << " [longitude=" << n.second.lon << ", latitude=" << n.second.lat << "]" << std::endl;
-    }
-
-    out << "Ways" << "\n";
-
-    for (auto w : p.second) {
-        for (auto v : w.second){
-            out << w.first << " " << v.first << " " << v.second << "\n";
-            out_print << "\t" << w.first << " -- " << v.first << std::endl;
-        }
-    }
     out_print << "}" << std::endl;
 
     out.close();
@@ -117,9 +113,9 @@ std::pair<std::map<unsigned long, Node>, std::map<unsigned long, std::vector<std
     return p;
 }
 
-std::pair<std::map<unsigned long, Node>, std::map<unsigned long, std::vector<std::pair<unsigned long, float>>>> parser_graph(std::ifstream &in) {
+std::pair<std::map<unsigned long, Node>, std::unordered_map<unsigned long, std::vector<vertex>>> parser_graph(std::ifstream &in) {
 
-    std::pair<std::map<unsigned long, Node>, std::map<unsigned long, std::vector<std::pair<unsigned long, float>>>> p;
+    std::pair<std::map<unsigned long, Node>, std::unordered_map<unsigned long, std::vector<vertex>>> p;
     std::string line;
 
     std::getline(in, line);                     // name of file
@@ -132,15 +128,39 @@ std::pair<std::map<unsigned long, Node>, std::map<unsigned long, std::vector<std
         n.lon = std::stof(line.substr(line.rfind(" ")));
 
         p.first.insert(std::pair<unsigned long, Node>(n.id, n));
-        std::vector<std::pair<unsigned long, float>> v;
-
-        p.second.insert(std::pair<unsigned long,std::vector<std::pair<unsigned long, float>>>(n.id, v));
+        std::vector<vertex> v;
+        p.second.insert(std::pair<unsigned long,std::vector<vertex>>(n.id, v));
     }
 
     while (std::getline(in,line)){
         unsigned long id = std::stoul(line.substr(0, line.find(" ")), nullptr, 10);
-        p.second[id].push_back(std::pair<unsigned long, float>(std::stoul(line.substr(0, line.find(" ")), nullptr, 10), std::stof(line.substr(line.rfind(" ")))));
+        unsigned long id_next;
+        float len;
+        id_next = std::stoul(line.substr(line.find(" ")+1, line.find(" ") - line.find(" ")-1), nullptr, 10);
+        len = std::stof(line.substr(line.rfind(" ")));
+        p.second[id].push_back(std::pair<unsigned long, float>(id_next, len));
+        p.second[id_next].push_back(std::pair<unsigned long, float>(id, len));
     }
 
     return p;
 };
+
+//void output_to_osc(std::pair<float, std::vector<unsigned long>> way, std::string name) {
+//    std::ofstream w("/home/valya/ClionProjects/NORSI_geo_2017/OUT_WAY/"+ name + ".osc");
+//    w << "<osmChange version=\"0.6\" generator=\"Norsi\">\n"
+//            "\t<create>\n\t<way id=\"-1\">\n";
+//
+//
+//    for (const auto &node : way.second) {
+//        w << "\t\t<nd ref=\"" << node << "\"/>" << std::endl;
+//    }
+//
+//    w << "\t</way>\n\t<relation id=\"-2\">\n"
+//            "\t\t<member type=\"way\" ref=\"-1\" role=\"route\"/>\n"
+//            "\t\t<tag k=\"type\" v=\"route\"/>\n"
+//            "\t\t<tag k=\"route\" v=\"road\"/>\n"
+//            "\t\t<tag k=\"colour\" v=\"red\"/>\n"
+//            "\t\t<tag k=\"distance\" v=\"" << way.first << "\"/>\n"
+//              "\t</relation>\n\t</create>\n</osmChange>";
+//    w.close();
+//}
