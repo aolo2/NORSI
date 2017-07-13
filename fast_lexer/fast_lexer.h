@@ -11,12 +11,12 @@
 
 struct Node {
     float lat, lon;
-    unsigned long id;
+    std::string id;
 };
 
 struct Way {
-    std::vector<unsigned long> nodes;
-    unsigned long id;
+    std::vector<std::string> nodes;
+    std::string id;
 };
 
 

@@ -11,18 +11,18 @@
 #include <unordered_map>
 #include <unordered_set>
 
-typedef std::pair<unsigned long, float> vertex;
-typedef std::pair<float, std::vector<unsigned int>> path;
+typedef std::pair<std::string, float> vertex;
+typedef std::pair<float, std::vector<std::string>> path;
+typedef std::unordered_map<std::string, std::vector<vertex>> graph;
 
 struct vertex_comp {
     bool operator()(const vertex &a, const vertex &b) { return a.second > b.second; }
 };
 
-path dijkstra(std::unordered_map<unsigned long, std::vector<vertex>> &graph,
-              unsigned long source, unsigned long target) {
+path dijkstra(graph &graph, const std::string &source, const std::string &target) {
     std::priority_queue<vertex, std::vector<vertex>, vertex_comp> Q;
-    std::unordered_map<unsigned long, float> dist;
-    std::unordered_map<unsigned long, unsigned long> prev;
+    std::unordered_map<std::string, float> dist;
+    std::unordered_map<std::string, std::string> prev;
 
     for (const auto &v : graph) {
         dist[v.first] = std::numeric_limits<float>::infinity();
@@ -89,21 +89,24 @@ int main(int argc, char **argv) {
     std::ifstream r(path);
     std::string line;
 
-    std::unordered_map<unsigned long, std::vector<vertex>> graph;
+    std::unordered_map<std::string, std::vector<vertex>> graph;
 
-    unsigned long id, edge_to;
+    std::string id, edge_to;
     float weight;
 
     while (std::getline(r, line)) {
-        id = std::stoul(line.substr(0, line.find(" ")));
-        edge_to = std::stoul(line.substr(line.find(" ") + 1, line.rfind(" ")));
+        std::size_t edge;
+        edge = line.find(" ") + 1;
+
+        id = line.substr(0, line.find(" "));
+        edge_to = line.substr(edge, line.rfind(" ") - edge);
         weight = std::stof(line.substr(line.rfind(" ") + 1));
 
         graph[id].push_back({edge_to, weight});
         graph[edge_to].push_back({id, weight});
     }
 
-    unsigned long source, target;
+    std::string source, target;
     std::cin >> source >> target;
 
     output_to_osc(dijkstra(graph, source, target));

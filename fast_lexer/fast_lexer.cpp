@@ -15,9 +15,15 @@ std::pair<std::vector<Node>, std::vector<Way>> get_nodes_and_ways(std::ifstream 
     while (std::getline(in, line)) {
         if (line.find("<node") != std::string::npos) {
             Node node;
-            node.id = std::stoul(line.substr(line.find("id=") + 4, line.find("\" ")));
-            node.lat = std::stof(line.substr(line.find("lat=") + 5, line.find(" lon")));
-            node.lon = std::stof(line.substr(line.find("lon=") + 5, line.rfind("\"")));
+
+            std::size_t id, lat, lon;
+            id = line.find("id=") + 4;
+            lat = line.find("lat=") + 5;
+            lon = line.find("lon=") + 5;
+
+            node.id = line.substr(id, line.find("\" ") - id);
+            node.lat = std::stof(line.substr(lat, lon - 1));
+            node.lon = std::stof(line.substr(lon, line.rfind("\"") - lon));
 
             ret.first.push_back(node);
         } else if (line.find("<way") != std::string::npos) {
@@ -27,7 +33,8 @@ std::pair<std::vector<Node>, std::vector<Way>> get_nodes_and_ways(std::ifstream 
             while (line.find("</way") == std::string::npos) {
                 std::getline(in, line);
                 if (line.find("<nd") != std::string::npos) {
-                    unsigned long id_to_add = std::stoul(line.substr(line.find("ref=") + 5, line.rfind("\"")));
+                    std::size_t ref = line.find("ref=") + 5;
+                    std::string id_to_add = line.substr(ref, line.rfind("\"") - ref);
                     way.nodes.push_back(id_to_add);
                 }
             }
