@@ -7,21 +7,25 @@
 #include <algorithm>
 #include "check.h"
 
+typedef std::pair<unsigned int, unsigned int> graph_dim;
+
+const float inf = std::numeric_limits<float>::infinity();
+const unsigned int start = 1; //415;
+const unsigned int end = 5	; //330949;
+
 __global__
 void bellman_ford(unsigned int iter, unsigned int *starts, unsigned int *ends,
 		float *weights, float *dist, unsigned int n) {
 
-	unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
-	unsigned int stride = gridDim.x * blockDim.x;
 	unsigned int from, to;
 	float w;
 
 //	printf("n: %d\t index: %d\t stride: %d\n", n, index, stride);
 
-	for (unsigned int i = index; i < n; i += stride) {
-		w = weights[i];
+	for (unsigned int i = blockIdx.x * blockDim.x + threadIdx.x; i < n; i += gridDim.x * blockDim.x) {
 		from = starts[i];
 		to = ends[i];
+		w = weights[i];
 
 //		printf("from: %d\t to: %d \t w: %f\n", from, to, w);
 
@@ -32,56 +36,51 @@ void bellman_ford(unsigned int iter, unsigned int *starts, unsigned int *ends,
 	}
 }
 
-int main(void) {
-	unsigned int modif = 0;
-//	*modif = 0;
+graph_dim read_file(const std::string &path, unsigned int **starts,
+		            unsigned int **ends, float **weights) {
 
-	std::ifstream r("LEN_int.sdot");
+	std::ifstream file(path.c_str());
 	std::string line;
 
-	const unsigned int edge_num = std::count(std::istreambuf_iterator<char>(r),
-			std::istreambuf_iterator<char>(), '\n');
+	graph_dim size;
+	size.first = std::count(std::istreambuf_iterator<char>(file),
+				 	 	    std::istreambuf_iterator<char>(), '\n');
 
-	r.close();
-	r.open("LEN_int.sdot");
+	*starts = (unsigned int *) malloc(size.first * sizeof(unsigned int));
+	*ends = (unsigned int *) malloc(size.first * sizeof(unsigned int));
+	*weights = (float *) malloc(size.first * sizeof(float));
 
-	const unsigned int start = 0; //415;
-	const unsigned int end = 8; //330949;
-
-	unsigned int from, to, vertex_num;
 	float weight;
-
-	unsigned int *starts, *ends;
-	float *weights, *dist;
-
-	starts = (unsigned int *) malloc(edge_num * sizeof(unsigned int));
-	ends = (unsigned int *) malloc(edge_num * sizeof(unsigned int));
-	weights = (float *) malloc(edge_num * sizeof(float));
-
 	unsigned int n = 0;
-	while (r >> from >> to >> weight) {
-		vertex_num = std::max(vertex_num, from + 1); // WRONG FOR DIGRAPGS!!
-		starts[n] = from;
-		ends[n] = to;
-		weights[n] = weight;
+	unsigned int from, to, vertex_num = 0;
+
+	file.close();
+	file.open(path.c_str());
+
+	while (file >> from >> to >> weight) {
+		vertex_num = std::max(vertex_num, from + 1); // undirected G's are expected
+		(*starts)[n] = from;
+		(*ends)[n] = to;
+		(*weights)[n] = weight;
 		++n;
 	}
 
-	dist = (float *) malloc(vertex_num * sizeof(float)); // vertices nums start from 1
-	float inf = std::numeric_limits<float>::infinity();
+	size.second = vertex_num + 1;
 
+	return size;
+}
+
+int main(void) {
+	unsigned int *starts = NULL, *ends = NULL, *d_s, *d_e, edge_num, vertex_num;
+	float *weights = NULL, *dist, *d_w, *d_dist;
+
+	graph_dim dimensions = read_file("SMALL2_int.sdot", &starts, &ends, &weights);
+	edge_num = dimensions.first, vertex_num = dimensions.second;
+
+	dist = (float *) malloc(vertex_num * sizeof(float));
+
+	for (unsigned int i = 0; i < vertex_num; i++) {	dist[i] = inf;}
 	dist[start] = 0.0f;
-	for (unsigned int i = 1; i < vertex_num; i++) {
-		dist[i] = inf;
-	}
-
-	/*for (unsigned int i = 0; i < edge_num; i++) {
-		std::cout << std::left << std::setw(2) << starts[i] << " "
-				<< std::setw(2) << ends[i] << " " << weights[i] << std::endl;
-	}*/
-
-	unsigned int *d_s, *d_e;
-	float *d_w, *d_dist;
 
 	check(cudaMalloc((void **) &d_s, edge_num * sizeof(unsigned int)));
 	check(cudaMalloc((void **) &d_e, edge_num * sizeof(unsigned int)));
@@ -93,23 +92,24 @@ int main(void) {
 	check(cudaMemcpy(d_w, weights, edge_num * sizeof(float), cudaMemcpyHostToDevice));
 	check(cudaMemcpy(d_dist, dist, vertex_num * sizeof(float), cudaMemcpyHostToDevice));
 
-	int block_size = 32;
+	int block_size = 512;
 	int num_blocks = (edge_num + block_size - 1) / block_size;
 
-	for (unsigned int i = 1; i < n; i++) {
+	for (unsigned int i = 1; i < edge_num; i++) {
 		bellman_ford<<<num_blocks, block_size>>>(i, d_s, d_e, d_w, d_dist, edge_num);
-
-//		if (modif == i - 1) {
-//			break;
-//		}
+//		check(cudaMemcpy(dist, d_dist, vertex_num * sizeof(float), cudaMemcpyDeviceToHost));
+//		for (unsigned int i = 0; i < vertex_num; i++) { std::cout << dist[i] << " "; }
+//		std::cout << std::endl;
 	}
 
 	check(cudaMemcpy(dist, d_dist, vertex_num * sizeof(float), cudaMemcpyDeviceToHost));
 
-	for (unsigned int i = 0; i < vertex_num; i++) {
-		std::cout << dist[i] << " ";
-	}
-	std::cout << std::endl;
+	std::cout << dist[end] << std::endl;
+
+	free(starts);
+	free(ends);
+	free(weights);
+	free(dist);
 
 	check(cudaFree(d_s));
 	check(cudaFree(d_e));
