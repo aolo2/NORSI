@@ -22,7 +22,7 @@ std::pair<std::vector<Node>, std::vector<Way>> get_nodes_and_ways(std::ifstream 
             lon = line.find("lon=") + 5;
 
             node.id = line.substr(id, line.find("\" ") - id);
-            node.lat = std::stof(line.substr(lat, lon - 1));
+            node.lat = std::stof(line.substr(lat, lon - 7 - lat));
             node.lon = std::stof(line.substr(lon, line.rfind("\"") - lon));
 
             ret.first.push_back(node);

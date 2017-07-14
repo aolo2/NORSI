@@ -104,6 +104,7 @@ int main(int argc, char **argv) {
 
         graph[id].push_back({edge_to, weight});
         graph[edge_to].push_back({id, weight});
+        // TODO: check one-way roads here
     }
 
     std::string source, target;
