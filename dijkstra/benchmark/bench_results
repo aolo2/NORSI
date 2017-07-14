@@ -1,0 +1,12 @@
+i3_6100
+LEN_26876394_1687750597_dijkstra_stripped:
+real	0m3.446s
+user	0m3.368s
+sys	0m0.076s
+
+i3_6100 -O3
+LEN_26876394_1687750597_dijkstra_stripped:
+real	0m1.128s
+user	0m1.076s
+sys	0m0.052s
+
